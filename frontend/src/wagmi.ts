@@ -11,7 +11,8 @@ import { localhost, arbitrum, arbitrumSepolia } from "./viemChains"; // Supporte
 // Use Nitro localhost for development, Arbitrum mainnets for production
 type Chain = typeof localhost | typeof arbitrum | typeof arbitrumSepolia;
 
-const isDev = process.env.NODE_ENV === "development" || process.env.VITE_USE_LOCALHOST === "true";
+// Use Vite's environment variables for mode detection
+const isDev = (import.meta as any).env?.MODE === "development" || (import.meta as any).env?.VITE_USE_LOCALHOST === "true";
 
 // Wagmi requires a non-empty tuple for chains
 const chains = (isDev ? [localhost, arbitrum, arbitrumSepolia] : [arbitrum, arbitrumSepolia]) as [Chain, ...Chain[]];
