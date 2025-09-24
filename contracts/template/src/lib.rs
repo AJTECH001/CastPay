@@ -5,10 +5,7 @@
 #![cfg_attr(not(feature = "export-abi"), no_std)]
 extern crate alloc;
 
-use mini_alloc::MiniAlloc;
-
-#[global_allocator]
-static ALLOC: MiniAlloc = MiniAlloc::INIT;
+// Global allocator is provided by stylus-sdk
 
 #[cfg(all(not(test), not(feature = "export-abi")))]
 #[panic_handler]

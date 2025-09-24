@@ -1,0 +1,11 @@
+{
+  "contractAddress": "0x14f148f5a6cf9bba52f9c4680fe782a4e00cc74a",
+  "deploymentTxHash": "0x5fac675b3545e9e6a46d93ac86963a8a4a143bd7d2543055fecdd8de44e490fd",
+  "activationTxHash": "0x6cba362629de30f8ae111c7f24bffa3a2cecc708ff210bf1bfcb970ce8f5a00b",
+  "network": "arbitrum-sepolia",
+  "chainId": 421614,
+  "rpcUrl": "https://sepolia-rollup.arbitrum.io/rpc",
+  "explorerUrl": "https://sepolia.arbiscan.io/",
+  "contractName": "CastPayPaymaster",
+  "deployedAt": "2024-09-24"
+}
