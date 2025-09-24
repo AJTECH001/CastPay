@@ -6,7 +6,7 @@ pub extern "C" fn main() {}
 
 #[cfg(feature = "export-abi")]
 fn main() {
-    farcaster_mini_app_starter_contract::print_abi(
+    castpay_paymaster::print_abi(
         "MIT-OR-APACHE-2.0",
         "pragma solidity ^0.8.23;",
     );

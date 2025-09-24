@@ -1,16 +1,16 @@
 [package]
-name = "farcaster_mini_app_starter_contract"
+name = "castpay_paymaster"
 version = "0.1.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
-homepage = "https://github.com/hummusonrails/farcaster-arbitrum-miniapp-starter"
-repository = "https://github.com/hummusonrails/farcaster-arbitrum-miniapp-starter"
-keywords = ["arbitrum", "ethereum", "stylus", "alloy"]
-description = "Starter template for building your own Farcaster Mini-App integrated with Arbitrum Stylus."
+homepage = "https://github.com/your-org/castpay"
+repository = "https://github.com/your-org/castpay"
+keywords = ["arbitrum", "ethereum", "stylus", "paymaster", "erc4337"]
+description = "CastPay Paymaster contract - ERC-4337 compatible gas sponsorship for USDC payments via social usernames"
 
 [dependencies]
 stylus-sdk = { version = "=0.9.0", default-features = false }
-mini-alloc = { version = "=0.9.0", default-features = false }
+mini-alloc = "0.4.2"
 openzeppelin-stylus = { git = "https://github.com/OpenZeppelin/rust-contracts-stylus", tag = "v0.2.0", default-features = false }
 
 alloy-primitives = { version = "=0.8.20", default-features = false, features = ["tiny-keccak"] }
@@ -19,7 +19,7 @@ alloy-sol-types = { version = "=0.8.20", default-features = false }
 [dev-dependencies]
 motsu = "0.2.1"
 
-alloy = { version = "=1.0.20", features = [
+alloy = { version = "1.0.36", features = [
   "contract",
   "network",
   "providers",
@@ -34,7 +34,7 @@ alloy = { version = "=1.0.20", features = [
 export-abi = ["stylus-sdk/export-abi", "openzeppelin-stylus/export-abi"]
 
 [[bin]]
-name = "genft"
+name = "castpay"
 path = "src/main.rs"
 
 [lib]
