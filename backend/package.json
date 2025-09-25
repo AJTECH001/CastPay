@@ -1,21 +1,22 @@
 {
   "name": "castpay-relayer",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  
+  "description": "CastPay Backend for gasless USDC transfers",
+  "main": "src/server.js",
   "scripts": {
-    "start": "node src/app.js",
-    "dev": "nodemon src/app.js",
-    "test": "node tests/test-endpoints.js",
-    "test:debug": "DEBUG=* node tests/test-endpoints.js"
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "node src/tests/test-endpoints.js",
+    "test:debug": "DEBUG=* node src/tests/test-endpoints.js",
+     "init-contract": "node src/scripts/initialize-contract.js",
+    "deploy-setup": "npm run src/init-contract && npm start"
   },
-
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@ngrok/ngrok": "^1.5.2",
     "axios": "^1.12.2",
     "cors": "^2.8.5",
     "dotenv": "^17.2.2",
