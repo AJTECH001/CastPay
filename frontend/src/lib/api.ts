@@ -13,7 +13,7 @@ export type TransferRequest = {
   to: `0x${string}`;
   amount: string; // decimal USDC amount as string
   nonce: number;
-  signature: `0x${string}`;
+  //signature: `0x${string}`;
 };
 
 export type TransferResponse = {

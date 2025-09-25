@@ -108,16 +108,16 @@ export default function App() {
       const message = `CastPay:${address}:${toAddress}:${amountWei}:${nonce}`;
       const signature = await signMessageAsync({ message });
 
-      // 3) Submit payment to backend
+      
       const resp = await api.sendPayment({
         from: address as `0x${string}`,
         to: toAddress as `0x${string}`,
         amount: details.amount,
         nonce,
-        signature: signature as `0x${string}`,
+        //signature: signature as `0x${string}`,
       });
 
-      // Optimistically update UI
+      
       setConfirmOpen(false);
       setSuccessOpen(true);
       const id = (resp.txId as string) || crypto.randomUUID();
