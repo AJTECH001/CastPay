@@ -14,8 +14,10 @@ class CastPayApp {
     this.app.use(cors({
       origin: [
         'http://localhost:3000',
+        'http://localhost:5173',
         'https://cast-pay-frontend.vercel.app',
-        'https://cadf9eb7e446.ngrok-free.app'
+        'https://cadf9eb7e446.ngrok-free.app',
+        'https://00692bb93831.ngrok-free.app'
       ],
       credentials: true
     }));
