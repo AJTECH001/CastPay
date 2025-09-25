@@ -10,8 +10,8 @@ CastPay enables gasless USDC transfers via Farcaster usernames. This backend han
 
 ```javascript
 const CASTPAY_CONFIG = {
-  API_BASE_URL: 'https://00692bb93831.ngrok-free.app',
-  USDC_ADDRESS: '0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d', // Arbitrum Sepolia
+  API_BASE_URL: "https://00692bb93831.ngrok-free.app",
+  USDC_ADDRESS: "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d", // Arbitrum Sepolia
   CHAIN_ID: 421614, // Arbitrum Sepolia
 };
 ```
@@ -25,21 +25,40 @@ class CastPayAPI {
   }
 
   async resolveUsername(username) {
-    const response = await fetch(`${this.baseURL}/resolve/${username}`);
+    const response = await fetch(
+      `${this.baseURL}/api/users/resolve/${username}`
+    );
     return response.json();
   }
 
   async sendPayment(paymentData) {
-    const response = await fetch(`${this.baseURL}/transfer`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(paymentData)
+    const response = await fetch(`${this.baseURL}/api/payments/transfer`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(paymentData),
     });
+    return response.json();
+  }
+
+  async getTransactionStatus(txId) {
+    const response = await fetch(`${this.baseURL}/api/payments/status/${txId}`);
+    return response.json();
+  }
+
+  async getBalance(address) {
+    const response = await fetch(
+      `${this.baseURL}/api/payments/balance/${address}`
+    );
+    return response.json();
+  }
+
+  async getNonce(address) {
+    const response = await fetch(`${this.baseURL}/api/users/nonce/${address}`);
     return response.json();
   }
 }
 
-const castpay = new CastPayAPI(' https://00692bb93831.ngrok-free.app');
+const castpay = new CastPayAPI("https://00692bb93831.ngrok-free.app");
 ```
 
 ## API Reference
@@ -68,14 +87,14 @@ Check backend and paymaster status.
 
 ### Username Resolution
 
-**GET /resolve/:username**
+**GET `/api/users/resolve/:username`**
 
 Resolve Farcaster username to Ethereum address.
 
 **Example:**
 
 ```bash
-GET /resolve/vitalik.eth
+GET /api/users/resolve/vitalik.eth
 ```
 
 **Response:**
@@ -92,7 +111,7 @@ GET /resolve/vitalik.eth
 
 ### Send Payment
 
-**POST /transfer**
+**POST `/api/payments/transfer`**
 
 Submit a gasless USDC transfer.
 
@@ -121,7 +140,7 @@ Submit a gasless USDC transfer.
 
 ### Transaction Status
 
-**GET /status/:txId**
+**GET `/api/payments/status/:txId`**
 
 Check transaction processing status.
 
@@ -142,7 +161,7 @@ Check transaction processing status.
 
 ### Balance Check
 
-**GET /balance/:address**
+**GET `/api/payments/balance/:address`**
 
 Get USDC balance and paymaster allowance.
 
@@ -159,7 +178,7 @@ Get USDC balance and paymaster allowance.
 
 ### Get Nonce
 
-**GET /nonce/:address**
+**GET `/api/users/nonce/:address`**
 
 Get current nonce for signature generation.
 
@@ -177,7 +196,7 @@ Get current nonce for signature generation.
 ### 1. Resolve Username
 
 ```javascript
-const resolution = await castpay.resolveUsername('vitalik.eth');
+const resolution = await castpay.resolveUsername("vitalik.eth");
 const toAddress = resolution.address;
 ```
 
@@ -187,7 +206,7 @@ const toAddress = resolution.address;
 const balanceInfo = await castpay.getBalance(userAddress);
 
 if (parseFloat(balanceInfo.balance) < amount) {
-  throw new Error('Insufficient USDC balance');
+  throw new Error("Insufficient USDC balance");
 }
 
 if (parseFloat(balanceInfo.paymasterAllowance) < amount) {
@@ -203,7 +222,7 @@ const nonce = parseInt(nonceInfo.nonce);
 
 const message = `CastPay:${userAddress}:${toAddress}:${amount}:${nonce}`;
 const signature = await window.ethereum.request({
-  method: 'personal_sign',
+  method: "personal_sign",
   params: [message, userAddress],
 });
 ```
@@ -216,7 +235,7 @@ const paymentData = {
   to: toAddress,
   amount: amount.toString(),
   nonce: nonce,
-  signature: signature
+  signature: signature,
 };
 
 const result = await castpay.sendPayment(paymentData);
@@ -227,15 +246,15 @@ const result = await castpay.sendPayment(paymentData);
 ```javascript
 const checkStatus = async (txId) => {
   const status = await castpay.getTransactionStatus(txId);
-  
-  switch(status.status) {
-    case 'success':
-      console.log('Payment completed!');
+
+  switch (status.status) {
+    case "success":
+      console.log("Payment completed!");
       break;
-    case 'failed':
-      console.error('Payment failed');
+    case "failed":
+      console.error("Payment failed");
       break;
-    case 'processing':
+    case "processing":
       setTimeout(() => checkStatus(txId), 2000);
       break;
   }
@@ -287,13 +306,27 @@ const PaymentComponent = ({ userAddress, userSigner }) => {
     }
   };
 
+  const trackPaymentStatus = async (txId) => {
+    const status = await castpay.getTransactionStatus(txId);
+    switch(status.status) {
+      case 'success':
+        setStatus('✅ Payment completed successfully!');
+        break;
+      case 'failed':
+        setStatus('❌ Payment failed');
+        break;
+      default:
+        setTimeout(() => trackPaymentStatus(txId), 2000);
+    }
+  };
+
   return (
     <div>
       <button 
         onClick={() => sendPayment('vitalik.eth', '5.00')} 
         disabled={loading}
       >
-        {loading ? 'Processing...' : 'Send 5 USDC'}
+        {loading ? 'Processing...' : 'Send 5 USDC to @vitalik.eth'}
       </button>
       {status && <p>{status}</p>}
     </div>
@@ -305,12 +338,12 @@ const PaymentComponent = ({ userAddress, userSigner }) => {
 
 ### Common Error Responses
 
-| Status Code | Error Message      | Description                        |
-|-------------|--------------------|------------------------------------|
-| 400         | Invalid addresses  | Malformed Ethereum addresses      |
-| 401         | Invalid signature  | Signature verification failed      |
-| 404         | User not found     | Farcaster username not resolved    |
-| 500         | Transfer failed    | Server error during processing     |
+| Status Code | Error Message     | Description                     |
+| ----------- | ----------------- | ------------------------------- |
+| 400         | Invalid addresses | Malformed Ethereum addresses    |
+| 401         | Invalid signature | Signature verification failed   |
+| 404         | User not found    | Farcaster username not resolved |
+| 500         | Transfer failed   | Server error during processing  |
 
 ### Error Handling Example
 
@@ -319,11 +352,11 @@ try {
   const result = await castpay.sendPayment(paymentData);
 } catch (error) {
   if (error.response?.status === 401) {
-    console.error('Signature validation failed');
+    console.error("Signature validation failed");
   } else if (error.response?.status === 400) {
-    console.error('Invalid parameters:', error.response.data.error);
+    console.error("Invalid parameters:", error.response.data.error);
   } else {
-    console.error('Payment failed:', error.message);
+    console.error("Payment failed:", error.message);
   }
 }
 ```
@@ -332,26 +365,26 @@ try {
 
 ### Transaction Status Values
 
-| Status      | Description                  |
-|-------------|------------------------------|
-| pending     | Transaction received, waiting processing |
-| processing  | Currently being processed    |
-| submitted   | Submitted to blockchain      |
-| success     | Completed successfully       |
-| failed      | Failed during processing     |
+| Status     | Description                              |
+| ---------- | ---------------------------------------- |
+| pending    | Transaction received, waiting processing |
+| processing | Currently being processed                |
+| submitted  | Submitted to blockchain                  |
+| success    | Completed successfully                   |
+| failed     | Failed during processing                 |
 
 ### Paymaster Status
 
 Check paymaster health before transactions:
 
 ```javascript
-const health = await fetch(`${baseURL}/health`).then(r => r.json());
+const health = await fetch(`${baseURL}/api/paymaster/status`).then(r => r.json());
 
-if (!health.paymaster.sponsorshipEnabled) {
+if (!health.sponsorshipEnabled) {
   console.warn('Gas sponsorship disabled');
 }
 
-if (health.paymaster.isPaused) {
+if (health.isPaused) {
   throw new Error('Paymaster contract paused');
 }
 ```
