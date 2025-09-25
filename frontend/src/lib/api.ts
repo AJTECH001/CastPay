@@ -42,14 +42,15 @@ export type BackendTransaction = {
 
 function baseUrl() {
   const url = (import.meta as any).env?.VITE_API_BASE as string | undefined;
-  return url?.replace(/\/$/, '') || '';
+  const cleanUrl = url?.replace(/\/$/, '') || 'https://cast-pay-frontend.vercel.app';
+  return cleanUrl;
 }
 
 async function handle<T>(res: Response): Promise<T> {
   if (!res.ok) {
     let payload: any = undefined;
     try { payload = await res.json(); } catch {}
-    throw new Error(payload?.error || payload?.message || `HTTP ${res.status}`);
+    throw new Error(payload?.error || payload?.message || `HTTP ${res.status}: ${res.statusText}`);
   }
   return res.json() as Promise<T>;
 }
