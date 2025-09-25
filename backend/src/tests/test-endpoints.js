@@ -46,7 +46,7 @@ class CastPayTester {
 
   async testHealthEndpoint() {
     console.log('1. 🔍 Testing Health Endpoint');
-    
+
     try {
       const response = await axios.get(`${BASE_URL}/health`);
       this.testResults.push({ test: 'Health Check', status: 'PASS', data: response.data });
@@ -66,7 +66,7 @@ class CastPayTester {
 
   async testUsernameResolution() {
     console.log('2. 👤 Testing Username Resolution');
-    
+
     const testUsernames = [
       'vitalik.eth',
       'mg',
@@ -76,10 +76,10 @@ class CastPayTester {
     for (const username of testUsernames) {
       try {
         const response = await axios.get(`${BASE_URL}/api/users/resolve/${username}`);
-        this.testResults.push({ 
-          test: `Resolve ${username}`, 
-          status: 'PASS', 
-          data: response.data 
+        this.testResults.push({
+          test: `Resolve ${username}`,
+          status: 'PASS',
+          data: response.data
         });
 
         console.log(`✅ ${username}:`, {
@@ -89,10 +89,10 @@ class CastPayTester {
         });
 
       } catch (error) {
-        this.testResults.push({ 
-          test: `Resolve ${username}`, 
-          status: 'FAIL', 
-          error: error.response?.data?.error || error.message 
+        this.testResults.push({
+          test: `Resolve ${username}`,
+          status: 'FAIL',
+          error: error.response?.data?.error || error.message
         });
         console.log(`❌ ${username}:`, error.response?.data?.error || error.message);
       }
@@ -102,7 +102,7 @@ class CastPayTester {
 
   async testBalanceEndpoints() {
     console.log('3. 💰 Testing Balance Endpoints');
-    
+
     try {
       // Test user balance
       const balanceResponse = await axios.get(`${BASE_URL}/api/payments/balance/${this.testAddress}`);
@@ -132,7 +132,7 @@ class CastPayTester {
 
   async testPaymasterEndpoints() {
     console.log('4. 🏦 Testing Paymaster Endpoints');
-    
+
     try {
       // Test paymaster status
       const statusResponse = await axios.get(`${BASE_URL}/api/paymaster/status`);
@@ -164,7 +164,7 @@ class CastPayTester {
 
   async testTransferEndpoint() {
     console.log('5. 🔄 Testing Transfer API');
-    
+
     try {
       // Create a test transfer payload
       const transferData = {
@@ -177,7 +177,7 @@ class CastPayTester {
 
       console.log('📤 Sending transfer request...');
       const response = await axios.post(`${BASE_URL}/api/payments/transfer`, transferData);
-      
+
       this.testResults.push({ test: 'Transfer API', status: 'PASS', data: response.data });
 
       console.log('✅ Transfer API response:', {
@@ -190,7 +190,7 @@ class CastPayTester {
       if (response.data.txId) {
         console.log('⏳ Checking transaction status...');
         await new Promise(resolve => setTimeout(resolve, 1000)); // Wait a bit
-        
+
         const statusResponse = await axios.get(`${BASE_URL}/api/payments/status/${response.data.txId}`);
         this.testResults.push({ test: 'Transaction Status', status: 'PASS', data: statusResponse.data });
 
@@ -203,7 +203,7 @@ class CastPayTester {
 
     } catch (error) {
       const errorMessage = error.response?.data?.error || error.message;
-      
+
       // Signature validation failure is expected with mock signature
       if (errorMessage.includes('signature') || errorMessage.includes('Signature')) {
         this.testResults.push({ test: 'Transfer API', status: 'PARTIAL', reason: 'Signature validation failed (expected)' });
@@ -212,7 +212,7 @@ class CastPayTester {
       } else {
         this.testResults.push({ test: 'Transfer API', status: 'FAIL', error: errorMessage });
         console.log('❌ Transfer API failed:', errorMessage);
-        
+
         if (error.response?.status) {
           console.log('   HTTP Status:', error.response.status);
         }
@@ -223,7 +223,7 @@ class CastPayTester {
 
   async testErrorCases() {
     console.log('6. 🚨 Testing Error Cases');
-    
+
     const errorTests = [
       {
         name: 'Invalid username resolution',
@@ -256,7 +256,7 @@ class CastPayTester {
         } else {
           await axios.get(test.url);
         }
-        
+
         this.testResults.push({ test: test.name, status: 'FAIL', reason: 'Should have failed but succeeded' });
         console.log(`❌ ${test.name}: Expected error but request succeeded`);
       } catch (error) {
@@ -276,31 +276,31 @@ class CastPayTester {
   printCurlCommands() {
     console.log('🔧 Curl Commands for Manual Testing');
     console.log('='.repeat(50));
-    
+
     console.log('\n1. Health Check:');
     console.log(`curl -X GET "${BASE_URL}/health"`);
-    
+
     console.log('\n2. Username Resolution:');
     console.log(`curl -X GET "${BASE_URL}/api/users/resolve/vitalik.eth"`);
-    
+
     console.log('\n3. Balance Check:');
     console.log(`curl -X GET "${BASE_URL}/api/payments/balance/${this.testAddress}"`);
-    
+
     console.log('\n4. Paymaster Status:');
     console.log(`curl -X GET "${BASE_URL}/api/paymaster/status"`);
-    
+
     console.log('\n5. Transfer Payment (with mock data):');
     console.log(`curl -X POST "${BASE_URL}/api/payments/transfer" \\\n  -H "Content-Type: application/json" \\\n  -d '{
   "from": "${this.testAddress}",
   "to": "${this.testRecipient}", 
   "amount": "0.01",
   "nonce": ${Date.now()},
-  "signature": "0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+  "signature": "0x18e40a3e10e1118fbac2e34a3043d75e34c1930f8a640985ad7c305664d6da144f72474acaaea23b8aa28b71f8bede95df0c7b38888e2a3a43fa9da24881a3fe1b"
 }'`);
 
     console.log('\n6. Transaction Status (replace TX_ID):');
     console.log(`curl -X GET "${BASE_URL}/api/payments/status/TX_ID_HERE"`);
-    
+
     console.log('\n💡 Tip: Copy and paste these commands into your terminal to test manually.');
     console.log('');
   }
@@ -308,7 +308,7 @@ class CastPayTester {
   printSummary() {
     console.log('📊 Test Summary');
     console.log('='.repeat(50));
-    
+
     const passed = this.testResults.filter(r => r.status === 'PASS').length;
     const failed = this.testResults.filter(r => r.status === 'FAIL').length;
     const skipped = this.testResults.filter(r => r.status === 'SKIP' || r.status === 'PARTIAL').length;
@@ -347,7 +347,7 @@ async function main() {
 // Handle command line arguments
 if (require.main === module) {
   const args = process.argv.slice(2);
-  
+
   if (args.includes('--help') || args.includes('-h')) {
     console.log(`
 Usage: node tests/test-endpoints.js [options]
