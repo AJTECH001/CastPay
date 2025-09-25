@@ -6,10 +6,10 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "test": "node tests/test-endpoints.js",
-    "test:debug": "DEBUG=* node tests/test-endpoints.js",
-     "init-contract": "node scripts/initialize-contract.js",
-    "deploy-setup": "npm run init-contract && npm start"
+    "test": "node src/tests/test-endpoints.js",
+    "test:debug": "DEBUG=* node src/tests/test-endpoints.js",
+     "init-contract": "node src/scripts/initialize-contract.js",
+    "deploy-setup": "npm run src/init-contract && npm start"
   },
   "keywords": [],
   "author": "",
