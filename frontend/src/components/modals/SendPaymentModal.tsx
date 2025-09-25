@@ -13,9 +13,11 @@ interface SendPaymentModalProps {
   open: boolean;
   onClose: () => void;
   onNext: (details: SendDetails) => void;
+  loading?: boolean;
+  errorMessage?: string;
 }
 
-export default function SendPaymentModal({ open, onClose, onNext }: SendPaymentModalProps) {
+export default function SendPaymentModal({ open, onClose, onNext, loading, errorMessage }: SendPaymentModalProps) {
   const [username, setUsername] = useState("@");
   const [amount, setAmount] = useState("");
   const [token, setToken] = useState("USDC");
@@ -25,29 +27,35 @@ export default function SendPaymentModal({ open, onClose, onNext }: SendPaymentM
   return (
     <Modal open={open} onClose={onClose} title="Send Payment">
       <div className="space-y-3">
-        <Input label="Recipient" placeholder="@username" value={username} onChange={(e) => setUsername(e.target.value)} />
+        <Input label="Recipient" placeholder="@username" value={username} onChange={(e) => setUsername(e.target.value)} disabled={!!loading} />
         <div className="grid grid-cols-3 gap-3">
-          <Input label="Amount" placeholder="0.00" value={amount} onChange={(e) => setAmount(e.target.value)} className="col-span-2" />
+          <Input label="Amount" placeholder="0.00" value={amount} onChange={(e) => setAmount(e.target.value)} className="col-span-2" disabled={!!loading} />
           <label className="block">
             <span className="block text-xs font-medium text-slate-300 mb-1">Token</span>
             <select
               className="w-full h-11 px-3 rounded-xl bg-slate-900/60 border border-slate-800 text-slate-100 outline-none focus:ring-2 focus:ring-yellow-400"
               value={token}
               onChange={(e) => setToken(e.target.value)}
+              disabled={!!loading}
             >
               <option value="USDC">USDC</option>
             </select>
           </label>
         </div>
+        {errorMessage && (
+          <div className="text-xs text-red-400 bg-red-900/20 border border-red-800/40 rounded-lg p-2">
+            {errorMessage}
+          </div>
+        )}
       </div>
       <div className="mt-4 grid grid-cols-2 gap-3">
         <Button variant="secondary" onClick={onClose}>Cancel</Button>
         <Button
           variant="primary"
           onClick={() => onNext({ username, amount, token })}
-          disabled={!canContinue}
+          disabled={!canContinue || !!loading}
         >
-          Continue
+          {loading ? "Checking..." : "Continue"}
         </Button>
       </div>
     </Modal>
