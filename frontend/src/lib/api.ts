@@ -41,8 +41,16 @@ export type BackendTransaction = {
 };
 
 function baseUrl() {
-  const url = (import.meta as any).env?.VITE_API_BASE as string | undefined;
-  return url?.replace(/\/$/, '') || '';
+  // Try environment variable first
+  const envUrl = import.meta.env.VITE_API_BASE;
+  if (envUrl) {
+    return envUrl.replace(/\/$/, '');
+  }
+  
+  // Fallback to hardcoded URL for development
+  const fallbackUrl = 'https://00692bb93831.ngrok-free.app';
+  console.warn('VITE_API_BASE environment variable is not set, using fallback:', fallbackUrl);
+  return fallbackUrl;
 }
 
 async function handle<T>(res: Response): Promise<T> {
