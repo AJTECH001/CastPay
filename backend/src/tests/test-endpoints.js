@@ -8,6 +8,7 @@ class CastPayTester {
     this.testResults = [];
     this.testUser = 'vitalik.eth';
     this.testAddress = '0xd8da6bf26964af9d7eed9e03e53415d37aa96045';
+    this.testRecipient = '0x742E6E70A3a24d5A0423340d34b0b0c65D1397a3'; // Test recipient
   }
 
   async runAllTests() {
@@ -27,10 +28,16 @@ class CastPayTester {
       // 4. Paymaster Management Endpoints
       await this.testPaymasterEndpoints();
 
-      // 5. Error Cases
+      // 5. Transfer API Test
+      await this.testTransferEndpoint();
+
+      // 6. Error Cases
       await this.testErrorCases();
 
       this.printSummary();
+
+      // Print curl commands for manual testing
+      this.printCurlCommands();
 
     } catch (error) {
       console.error('❌ Test suite failed:', error.message);
@@ -155,8 +162,67 @@ class CastPayTester {
     console.log('');
   }
 
+  async testTransferEndpoint() {
+    console.log('5. 🔄 Testing Transfer API');
+    
+    try {
+      // Create a test transfer payload
+      const transferData = {
+        from: this.testAddress,
+        to: this.testRecipient,
+        amount: "0.01", // Small amount for testing
+        nonce: Date.now(), // Unique nonce
+        signature: "0x" + "0".repeat(130) // Mock signature (will fail validation)
+      };
+
+      console.log('📤 Sending transfer request...');
+      const response = await axios.post(`${BASE_URL}/api/payments/transfer`, transferData);
+      
+      this.testResults.push({ test: 'Transfer API', status: 'PASS', data: response.data });
+
+      console.log('✅ Transfer API response:', {
+        txId: response.data.txId,
+        status: response.data.status,
+        message: response.data.message
+      });
+
+      // Test transaction status endpoint
+      if (response.data.txId) {
+        console.log('⏳ Checking transaction status...');
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait a bit
+        
+        const statusResponse = await axios.get(`${BASE_URL}/api/payments/status/${response.data.txId}`);
+        this.testResults.push({ test: 'Transaction Status', status: 'PASS', data: statusResponse.data });
+
+        console.log('✅ Transaction status:', {
+          txId: statusResponse.data.txId,
+          currentStatus: statusResponse.data.status,
+          timestamp: statusResponse.data.timestamp
+        });
+      }
+
+    } catch (error) {
+      const errorMessage = error.response?.data?.error || error.message;
+      
+      // Signature validation failure is expected with mock signature
+      if (errorMessage.includes('signature') || errorMessage.includes('Signature')) {
+        this.testResults.push({ test: 'Transfer API', status: 'PARTIAL', reason: 'Signature validation failed (expected)' });
+        console.log('⚠️  Transfer API: Signature validation failed (this is expected with mock signature)');
+        console.log('   Error details:', errorMessage);
+      } else {
+        this.testResults.push({ test: 'Transfer API', status: 'FAIL', error: errorMessage });
+        console.log('❌ Transfer API failed:', errorMessage);
+        
+        if (error.response?.status) {
+          console.log('   HTTP Status:', error.response.status);
+        }
+      }
+    }
+    console.log('');
+  }
+
   async testErrorCases() {
-    console.log('5. 🚨 Testing Error Cases');
+    console.log('6. 🚨 Testing Error Cases');
     
     const errorTests = [
       {
@@ -173,12 +239,24 @@ class CastPayTester {
         name: 'Non-existent API route',
         url: `${BASE_URL}/api/nonexistent`,
         expectedError: 'Route not found'
+      },
+      {
+        name: 'Invalid transfer data',
+        method: 'POST',
+        url: `${BASE_URL}/api/payments/transfer`,
+        data: { invalid: 'data' },
+        expectedError: 'Invalid addresses'
       }
     ];
 
     for (const test of errorTests) {
       try {
-        await axios.get(test.url);
+        if (test.method === 'POST') {
+          await axios.post(test.url, test.data);
+        } else {
+          await axios.get(test.url);
+        }
+        
         this.testResults.push({ test: test.name, status: 'FAIL', reason: 'Should have failed but succeeded' });
         console.log(`❌ ${test.name}: Expected error but request succeeded`);
       } catch (error) {
@@ -192,6 +270,38 @@ class CastPayTester {
         }
       }
     }
+    console.log('');
+  }
+
+  printCurlCommands() {
+    console.log('🔧 Curl Commands for Manual Testing');
+    console.log('='.repeat(50));
+    
+    console.log('\n1. Health Check:');
+    console.log(`curl -X GET "${BASE_URL}/health"`);
+    
+    console.log('\n2. Username Resolution:');
+    console.log(`curl -X GET "${BASE_URL}/api/users/resolve/vitalik.eth"`);
+    
+    console.log('\n3. Balance Check:');
+    console.log(`curl -X GET "${BASE_URL}/api/payments/balance/${this.testAddress}"`);
+    
+    console.log('\n4. Paymaster Status:');
+    console.log(`curl -X GET "${BASE_URL}/api/paymaster/status"`);
+    
+    console.log('\n5. Transfer Payment (with mock data):');
+    console.log(`curl -X POST "${BASE_URL}/api/payments/transfer" \\\n  -H "Content-Type: application/json" \\\n  -d '{
+  "from": "${this.testAddress}",
+  "to": "${this.testRecipient}", 
+  "amount": "0.01",
+  "nonce": ${Date.now()},
+  "signature": "0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+}'`);
+
+    console.log('\n6. Transaction Status (replace TX_ID):');
+    console.log(`curl -X GET "${BASE_URL}/api/payments/status/TX_ID_HERE"`);
+    
+    console.log('\n💡 Tip: Copy and paste these commands into your terminal to test manually.');
     console.log('');
   }
 
@@ -225,12 +335,6 @@ class CastPayTester {
     } else {
       console.log('💡 Some tests failed. Check the configuration and try again.');
     }
-
-    // Final recommendations
-    console.log('');
-    console.log('🔧 Next Steps:');
-    console.log('   • Test with frontend integration');
-    console.log('   • Monitor transaction status endpoints');
   }
 }
 
