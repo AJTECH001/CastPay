@@ -68,6 +68,7 @@ class CastPayRelayer {
     this.app.use(cors({
       origin: [
         'http://localhost:3000',
+        'http://localhost:5173',
         'https://cast-pay-frontend.vercel.app',
         'https://cadf9eb7e446.ngrok-free.app'
       ],
@@ -95,6 +96,7 @@ class CastPayRelayer {
     this.app.get('/resolve/:username', this.resolveUsername.bind(this));
     this.app.post('/transfer', this.sponsoredTransfer.bind(this));
     this.app.get('/status/:txId', this.getTransactionStatus.bind(this));
+    this.app.get('/transactions', this.getTransactions.bind(this));
     this.app.get('/balance/:address', this.getUserBalance.bind(this));
     this.app.get('/nonce/:address', this.getUserNonce.bind(this));
 
