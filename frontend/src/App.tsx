@@ -37,6 +37,20 @@ export default function App() {
   const [toAddress, setToAddress] = useState<`0x${string}` | "">("");
   const [sendError, setSendError] = useState<string>("");
 
+  // Convert decimal (e.g., "5.25") to base units string with 6 decimals (e.g., "5250000")
+  function toBaseUnits(amount: string, decimals = 6): string {
+    const trimmed = amount.trim();
+    if (!trimmed) return "0";
+    const neg = trimmed.startsWith("-");
+    const a = neg ? trimmed.slice(1) : trimmed;
+    const [intPartRaw, fracPartRaw = ""] = a.split(".");
+    const intPart = intPartRaw.replace(/^0+(?=\d)/, "");
+    const fracPadded = (fracPartRaw + "".padEnd(decimals, "0")).slice(0, decimals);
+    const joined = `${intPart || "0"}${fracPadded}`.replace(/^0+(?=\d)/, "");
+    const out = joined.length ? joined : "0";
+    return neg ? `-${out}` : out;
+  }
+
   useEffect(() => {
     sdk.actions.ready();
   }, []);
@@ -90,7 +104,8 @@ export default function App() {
       const nonce = typeof nr.nonce === 'string' ? parseInt(nr.nonce) : (nr.nonce as number);
 
       // 2) Build message and sign via wagmi
-      const message = `CastPay:${address}:${toAddress}:${details.amount}:${nonce}`;
+      const amountWei = toBaseUnits(details.amount, 6);
+      const message = `CastPay:${address}:${toAddress}:${amountWei}:${nonce}`;
       const signature = await signMessageAsync({ message });
 
       // 3) Submit payment to backend
