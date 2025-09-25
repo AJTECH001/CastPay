@@ -140,7 +140,14 @@ export default function App() {
       };
       poll();
     } catch (e: any) {
-      alert(e?.message || "Payment failed. Please try again.");
+      // Handle wallet/user rejection explicitly
+      const msg = e?.message || '';
+      const code = e?.code;
+      if (code === 4001 || /User rejected/i.test(msg)) {
+        alert("Signature request was rejected. No funds were sent.");
+      } else {
+        alert(msg || "Payment failed. Please try again.");
+      }
     } finally {
       setPending(false);
     }
