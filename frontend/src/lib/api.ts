@@ -42,7 +42,8 @@ export type BackendTransaction = {
 
 function baseUrl() {
   const url = (import.meta as any).env?.VITE_API_BASE as string | undefined;
-  return url?.replace(/\/$/, '') || '';
+  const cleanUrl = url?.replace(/\/$/, '') || 'https://cast-pay-frontend.vercel.app';
+  return cleanUrl;
 }
 
 async function handle<T>(res: Response): Promise<T> {
