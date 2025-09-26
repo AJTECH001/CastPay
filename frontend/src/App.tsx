@@ -168,7 +168,7 @@ export default function App() {
       const msg = e?.message || '';
       const code = e?.code;
       if (code === 4001 || /User rejected/i.test(msg)) {
-        alert("Signature request was rejected. No funds were sent.");
+        alert("payment request was rejected. No funds were sent.");
       } else {
         alert(msg || "Payment failed. Please try again.");
       }
