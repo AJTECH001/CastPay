@@ -1,9 +1,9 @@
 // CastPay Dashboard UI (Farcaster Mini App)
 // Dark background with yellow accents; reusable components; NFT logic removed.
 
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { sdk } from "@farcaster/miniapp-sdk";
-import { useAccount, useConnect, useSignMessage } from "wagmi";
+import { useAccount, useConnect } from "wagmi";
 
 import Layout from "./components/Layout";
 import Header from "./components/Header";
@@ -21,9 +21,9 @@ import { api } from "./lib/api";
 export default function App() {
   const { isConnected, address } = useAccount();
   const { connect, connectors, status, error } = useConnect();
-  const { signMessageAsync } = useSignMessage();
+  
 
-  // Demo state: balance & transactions (to be fetched from backend later)
+  // State: balance fetched from backend; transactions kept locally (TODO: fetch from backend)
   const [balance, setBalance] = useState<string>("0.00");
   const [txs, setTxs] = useState<TxItem[]>([]);
 
@@ -37,19 +37,19 @@ export default function App() {
   const [toAddress, setToAddress] = useState<`0x${string}` | "">("");
   const [sendError, setSendError] = useState<string>("");
 
-  // Convert decimal (e.g., "5.25") to base units string with 6 decimals (e.g., "5250000")
-  function toBaseUnits(amount: string, decimals = 6): string {
-    const trimmed = amount.trim();
-    if (!trimmed) return "0";
-    const neg = trimmed.startsWith("-");
-    const a = neg ? trimmed.slice(1) : trimmed;
-    const [intPartRaw, fracPartRaw = ""] = a.split(".");
-    const intPart = intPartRaw.replace(/^0+(?=\d)/, "");
-    const fracPadded = (fracPartRaw + "".padEnd(decimals, "0")).slice(0, decimals);
-    const joined = `${intPart || "0"}${fracPadded}`.replace(/^0+(?=\d)/, "");
-    const out = joined.length ? joined : "0";
-    return neg ? `-${out}` : out;
+  // Convert base units (6 decimals) to a human-readable decimal string
+  function fromBaseUnits(units: string, decimals = 6): string {
+    const neg = units.startsWith("-");
+    const s = neg ? units.slice(1) : units;
+    const padded = s.padStart(decimals + 1, "0");
+    const intPart = padded.slice(0, padded.length - decimals);
+    const fracPartRaw = padded.slice(padded.length - decimals);
+    const fracPart = fracPartRaw.replace(/0+$/, "");
+    const value = fracPart ? `${intPart}.${fracPart}` : intPart;
+    return neg ? `-${value}` : value;
   }
+
+  
 
   useEffect(() => {
     sdk.actions.ready();
@@ -64,10 +64,40 @@ export default function App() {
         const b = await api.getBalance(address as `0x${string}`);
         if (!abort) setBalance(b.balance);
       } catch (e) {
-        // keep silent for now
+        
       }
     };
     load();
+    return () => { abort = true; };
+  }, [isConnected, address]);
+
+  // Load recent transactions from backend when connected
+  useEffect(() => {
+    let abort = false;
+    const loadTxs = async () => {
+      if (!isConnected || !address) return;
+      try {
+        const list = await api.listTransactions(address as `0x${string}`, 20);
+        if (abort) return;
+        const self = (address as string).toLowerCase();
+        const items: TxItem[] = list.map((tx) => {
+          const direction: TxItem["direction"] = tx.from.toLowerCase() === self ? "out" : "in";
+          const counterparty = direction === "out" ? tx.to : tx.from;
+          return {
+            id: tx.txId,
+            direction,
+            counterparty,
+            amount: fromBaseUnits(tx.amount, 6),
+            token: "USDC",
+            date: tx.timestamp ? new Date(tx.timestamp * 1000).toLocaleString() : "",
+          };
+        });
+        setTxs(items);
+      } catch (e) {
+        
+      }
+    };
+    loadTxs();
     return () => { abort = true; };
   }, [isConnected, address]);
 
@@ -78,7 +108,7 @@ export default function App() {
     setSendError("");
     setPending(true);
     try {
-      // Resolve @username -> address via backend
+      // Resolve @username -> address
       const res = await api.resolveUsername(d.username);
       setToAddress(res.address as `0x${string}`);
       setDetails(d);
@@ -99,25 +129,19 @@ export default function App() {
     if (!details || !address || !toAddress) return;
     setPending(true);
     try {
-      // 1) Get nonce from backend
+      // 1) Get nonce
       const nr = await api.getNonce(address as `0x${string}`);
       const nonce = typeof nr.nonce === 'string' ? parseInt(nr.nonce) : (nr.nonce as number);
 
-      // 2) Build message and sign via wagmi
-      const amountWei = toBaseUnits(details.amount, 6);
-      const message = `CastPay:${address}:${toAddress}:${amountWei}:${nonce}`;
-      const signature = await signMessageAsync({ message });
-
-      // 3) Submit payment to backend
+      // 2) Send payment request
       const resp = await api.sendPayment({
         from: address as `0x${string}`,
         to: toAddress as `0x${string}`,
         amount: details.amount,
         nonce,
-        signature: signature as `0x${string}`,
       });
 
-      // Optimistically update UI
+      
       setConfirmOpen(false);
       setSuccessOpen(true);
       const id = (resp.txId as string) || crypto.randomUUID();
@@ -140,7 +164,14 @@ export default function App() {
       };
       poll();
     } catch (e: any) {
-      alert(e?.message || "Payment failed. Please try again.");
+      // Handle wallet/user rejection explicitly
+      const msg = e?.message || '';
+      const code = e?.code;
+      if (code === 4001 || /User rejected/i.test(msg)) {
+        alert("payment request was rejected. No funds were sent.");
+      } else {
+        alert(msg || "Payment failed. Please try again.");
+      }
     } finally {
       setPending(false);
     }
