@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { sdk } from "@farcaster/miniapp-sdk";
-import { useAccount, useConnect } from "wagmi";
+import { useAccount, useConnect, useDisconnect } from "wagmi";
 
 import Layout from "./components/Layout";
 import Header from "./components/Header";
@@ -21,6 +21,7 @@ import { api } from "./lib/api";
 export default function App() {
   const { isConnected, address } = useAccount();
   const { connect, connectors, status, error } = useConnect();
+  const { disconnect } = useDisconnect();
   
 
   // State: balance fetched from backend; transactions kept locally (TODO: fetch from backend)
@@ -212,9 +213,12 @@ export default function App() {
 
           <Transactions items={txs} />
 
-          <div className="mt-6 text-center">
+          <div className="mt-6 flex items-center justify-center gap-3">
             <Button variant="ghost" onClick={() => sdk.actions.composeCast({ text: "Try CastPay for gasless payments on Arbitrum ✨" })}>
               Share CastPay on Farcaster
+            </Button>
+            <Button variant="secondary" onClick={() => disconnect()}>
+              Disconnect
             </Button>
           </div>
         </>
