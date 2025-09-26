@@ -23,6 +23,15 @@ export default function App() {
   const { connect, connectors, status, error } = useConnect();
   const { disconnect } = useDisconnect();
   
+  // Debug logging for connectors
+  useEffect(() => {
+    console.log('[CastPay] Available connectors:', connectors?.map(c => ({ name: c.name, id: c.id })));
+    console.log('[CastPay] Connection status:', status);
+    if (error) {
+      console.error('[CastPay] Connection error:', error);
+    }
+  }, [connectors, status, error]);
+  
 
   // State: balance fetched from backend; transactions kept locally (TODO: fetch from backend)
   const [balance, setBalance] = useState<string>("0.00");
@@ -207,12 +216,17 @@ export default function App() {
           <Button
             className="mt-4"
             variant="primary"
-            onClick={() => connect({ connector: connectors[0] })}
-            disabled={status === "pending" || !connectors.length}
+            onClick={() => {
+              const connector = connectors?.[0];
+              if (connector) {
+                connect({ connector });
+              }
+            }}
+            disabled={status === "pending" || !connectors?.length}
           >
             {status === "pending" ? "Connecting..." : "Connect Wallet"}
           </Button>
-          {error && <div className="text-red-400 font-semibold text-xs mt-2">{error.message}</div>}
+          {error && <div className="text-red-400 font-semibold text-xs mt-2">{error?.message || 'Connection failed'}</div>}
         </div>
       ) : (
         <>
