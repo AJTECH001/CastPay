@@ -172,6 +172,7 @@ export default function App() {
       } else {
         alert(msg || "Payment failed. Please try again.");
       }
+      
     } finally {
       setPending(false);
     }
