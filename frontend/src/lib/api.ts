@@ -47,18 +47,52 @@ function baseUrl() {
   }
 
   // Otherwise, try environment variable next
-  const envUrl = import.meta.env.VITE_API_BASE;
+  let envUrl = import.meta.env.VITE_API_BASE as string | undefined;
   if (envUrl) {
-    const cleaned = envUrl.replace(/\/$/, '');
-    console.debug('[api] Using VITE_API_BASE:', cleaned);
-    return cleaned;
+    let raw = String(envUrl).trim();
+    
+    // Handle common deployment issues
+  
+    if (/^VITE_API_BASE=/.test(raw)) {
+      raw = raw.split('=').slice(1).join('=');
+    }
+    
+    // Handle other common variable name prefixes
+    if (/^[A-Z_]+=/.test(raw)) {
+      raw = raw.split('=').slice(1).join('=');
+    }
+    
+    raw = raw.trim();
+    
+    
+    raw = raw.replace(/^(https?:)\/(?!\/)/i, '$1//');
+    
+    // Ensure we have a valid url
+    try {
+      new URL(raw);
+    } catch (e) {
+      console.error('[api] Invalid VITE_API_BASE URL:', raw, 'Error:', e);
+      // Fall through to use fallback
+      envUrl = undefined;
+    }
+    
+    if (envUrl) {
+      const cleaned = raw.replace(/\/$/, '');
+      if (typeof window !== 'undefined') {
+        (window as any).__CASTPAY_BASE_WARNED__ || console.warn('[api] Using VITE_API_BASE:', cleaned);
+        (window as any).__CASTPAY_BASE_WARNED__ = true;
+      } else {
+        console.debug('[api] Using VITE_API_BASE:', cleaned);
+      }
+      return cleaned;
+    }
   }
 
   // As a last resort, use the known backend URL (may trigger CORS if not proxied)
   const fallbackUrl = 'https://00692bb93831.ngrok-free.app';
   if (typeof window !== 'undefined') {
     // Log once per session to help diagnose environment misconfig
-    (window as any).__CASTPAY_BASE_WARNED__ || console.warn('VITE_API_BASE is not set. Using fallback URL:', fallbackUrl);
+    (window as any).__CASTPAY_BASE_WARNED__ || console.warn('VITE_API_BASE is not set or invalid. Using fallback URL:', fallbackUrl);
     (window as any).__CASTPAY_BASE_WARNED__ = true;
   }
   return fallbackUrl;
