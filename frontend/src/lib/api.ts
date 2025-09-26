@@ -104,12 +104,37 @@ async function handle<T>(res: Response): Promise<T> {
     try { payload = await res.json(); } catch {}
     throw new Error(payload?.error || payload?.message || `HTTP ${res.status}: ${res.statusText}`);
   }
-  return res.json() as Promise<T>;
+  
+  // Check if response is actually JSON
+  const contentType = res.headers.get('content-type');
+  if (!contentType || !contentType.includes('application/json')) {
+    const text = await res.text();
+    console.error('[API] Non-JSON response received:', text.substring(0, 200));
+    throw new Error(`Server returned HTML instead of JSON. Check the API endpoint configuration.`);
+  }
+  
+  try {
+    return await res.json() as T;
+  } catch (error) {
+    console.error('[API] JSON parse error:', error);
+    throw new Error(`Invalid JSON response from server. Check the API response format.`);
+  }
 }
 
 export const api = {
   resolveUsername: async (username: string) => {
-    const res = await fetch(`${baseUrl()}/users/resolve/${encodeURIComponent(username.replace(/^@/, ''))}`);
+    const cleanUsername = username.replace(/^@/, '');
+    const url = `${baseUrl()}/users/resolve/${encodeURIComponent(cleanUsername)}`;
+    console.debug('[API] Resolving username:', cleanUsername, 'URL:', url);
+    
+    const res = await fetch(url, {
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+    });
+    console.debug('[API] Response status:', res.status, 'Content-Type:', res.headers.get('content-type'));
+    
     return handle<ResolveResponse>(res);
   },
   getNonce: async (address: `0x${string}`) => {
