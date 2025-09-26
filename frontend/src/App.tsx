@@ -53,7 +53,13 @@ export default function App() {
   
 
   useEffect(() => {
-    sdk.actions.ready();
+    // Initialize Farcaster SDK with error handling
+    try {
+      sdk.actions.ready();
+    } catch (error) {
+      console.warn('[Farcaster SDK] Failed to initialize:', error);
+      // App can still function without full SDK features
+    }
   }, []);
 
   
@@ -181,9 +187,14 @@ export default function App() {
 
   const handleShare = () => {
     if (!details) return;
-    sdk.actions.composeCast({
-      text: `I just sent ${details.amount} ${details.token} to ${details.username} with CastPay – gasless on Arbitrum!`,
-    });
+    try {
+      sdk.actions.composeCast({
+        text: `I just sent ${details.amount} ${details.token} to ${details.username} with CastPay – gasless on Arbitrum!`,
+      });
+    } catch (error) {
+      console.warn('[Farcaster SDK] Failed to compose cast:', error);
+      // Fallback: could show a manual sharing option or copy text to clipboard
+    }
   };
 
   return (
@@ -214,7 +225,13 @@ export default function App() {
           <Transactions items={txs} />
 
           <div className="mt-6 flex items-center justify-center gap-3">
-            <Button variant="ghost" onClick={() => sdk.actions.composeCast({ text: "Try CastPay for gasless payments on Arbitrum ✨" })}>
+            <Button variant="ghost" onClick={() => {
+              try {
+                sdk.actions.composeCast({ text: "Try CastPay for gasless payments on Arbitrum ✨" });
+              } catch (error) {
+                console.warn('[Farcaster SDK] Failed to compose cast:', error);
+              }
+            }}>
               Share CastPay on Farcaster
             </Button>
             <Button variant="secondary" onClick={() => disconnect()}>
