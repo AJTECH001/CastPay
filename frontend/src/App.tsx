@@ -223,6 +223,7 @@ export default function App() {
           </div>
         </>
       )}
+      
 
       {/* Modals */}
       <SendPaymentModal open={sendOpen} onClose={() => setSendOpen(false)} onNext={handleSendNext} loading={pending} errorMessage={sendError} />
