@@ -160,7 +160,7 @@ export default function App() {
           }
           setTimeout(poll, 1500);
         } catch {
-          // stop polling on error
+          
         }
       };
       poll();
@@ -223,7 +223,7 @@ export default function App() {
           </div>
         </>
       )}
-      
+
 
       {/* Modals */}
       <SendPaymentModal open={sendOpen} onClose={() => setSendOpen(false)} onNext={handleSendNext} loading={pending} errorMessage={sendError} />
