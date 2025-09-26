@@ -13,7 +13,6 @@ export type TransferRequest = {
   to: `0x${string}`;
   amount: string; // decimal USDC amount as string
   nonce: number;
-  signature: `0x${string}`;
 };
 
 export type TransferResponse = {
@@ -41,15 +40,27 @@ export type BackendTransaction = {
 };
 
 function baseUrl() {
-  // Try environment variable first
+  // In development, prefer the Vite proxy to avoid CORS, unless explicitly forced
+  if (import.meta.env.DEV && import.meta.env.VITE_USE_DIRECT !== 'true') {
+    console.debug('[api] Using dev proxy base /api');
+    return '/api';
+  }
+
+  // Otherwise, try environment variable next
   const envUrl = import.meta.env.VITE_API_BASE;
   if (envUrl) {
-    return envUrl.replace(/\/$/, '');
+    const cleaned = envUrl.replace(/\/$/, '');
+    console.debug('[api] Using VITE_API_BASE:', cleaned);
+    return cleaned;
   }
-  
-  // Fallback to hardcoded backend URL for development
+
+  // As a last resort, use the known backend URL (may trigger CORS if not proxied)
   const fallbackUrl = 'https://00692bb93831.ngrok-free.app';
-  console.warn('VITE_API_BASE environment variable is not set, using fallback:', fallbackUrl);
+  if (typeof window !== 'undefined') {
+    // Log once per session to help diagnose environment misconfig
+    (window as any).__CASTPAY_BASE_WARNED__ || console.warn('VITE_API_BASE is not set. Using fallback URL:', fallbackUrl);
+    (window as any).__CASTPAY_BASE_WARNED__ = true;
+  }
   return fallbackUrl;
 }
 
@@ -64,15 +75,15 @@ async function handle<T>(res: Response): Promise<T> {
 
 export const api = {
   resolveUsername: async (username: string) => {
-    const res = await fetch(`${baseUrl()}/resolve/${encodeURIComponent(username.replace(/^@/, ''))}`);
+    const res = await fetch(`${baseUrl()}/users/resolve/${encodeURIComponent(username.replace(/^@/, ''))}`);
     return handle<ResolveResponse>(res);
   },
   getNonce: async (address: `0x${string}`) => {
-    const res = await fetch(`${baseUrl()}/nonce/${address}`);
+    const res = await fetch(`${baseUrl()}/users/nonce/${address}`);
     return handle<NonceResponse>(res);
   },
   sendPayment: async (data: TransferRequest) => {
-    const res = await fetch(`${baseUrl()}/transfer`, {
+    const res = await fetch(`${baseUrl()}/payments/transfer`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -80,16 +91,16 @@ export const api = {
     return handle<TransferResponse>(res);
   },
   getStatus: async (txId: string) => {
-    const res = await fetch(`${baseUrl()}/status/${txId}`);
+    const res = await fetch(`${baseUrl()}/payments/status/${txId}`);
     return handle<StatusResponse>(res);
   },
   listTransactions: async (address: `0x${string}`, limit = 20) => {
     const params = new URLSearchParams({ address, limit: String(limit) });
-    const res = await fetch(`${baseUrl()}/transactions?${params.toString()}`);
+    const res = await fetch(`${baseUrl()}/payments/transactions?${params.toString()}`);
     return handle<BackendTransaction[]>(res);
   },
   getBalance: async (address: `0x${string}`) => {
-    const res = await fetch(`${baseUrl()}/balance/${address}`);
+    const res = await fetch(`${baseUrl()}/payments/balance/${address}`);
     return handle<{ address: string; balance: string; paymasterAllowance?: string; paymasterAddress?: string }>(res);
   },
   health: async () => {
