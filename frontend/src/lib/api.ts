@@ -64,12 +64,10 @@ function baseUrl() {
     
     raw = raw.trim();
     
-    // Fix common protocol typos
-    // 'https:/host' -> 'https://host'
-    // 'http:/host' -> 'http://host'
+    
     raw = raw.replace(/^(https?:)\/(?!\/)/i, '$1//');
     
-    // Ensure we have a valid URL
+    // Ensure we have a valid url
     try {
       new URL(raw);
     } catch (e) {
