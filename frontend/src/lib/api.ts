@@ -124,13 +124,14 @@ async function handle<T>(res: Response): Promise<T> {
 export const api = {
   resolveUsername: async (username: string) => {
     const cleanUsername = username.replace(/^@/, '');
-    const url = `${baseUrl()}/users/resolve/${encodeURIComponent(cleanUsername)}`;
+    const url = `${baseUrl()}/api/users/resolve/${encodeURIComponent(cleanUsername)}`;
     console.debug('[API] Resolving username:', cleanUsername, 'URL:', url);
     
     const res = await fetch(url, {
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
       },
     });
     console.debug('[API] Response status:', res.status, 'Content-Type:', res.headers.get('content-type'));
@@ -138,32 +139,55 @@ export const api = {
     return handle<ResolveResponse>(res);
   },
   getNonce: async (address: `0x${string}`) => {
-    const res = await fetch(`${baseUrl()}/users/nonce/${address}`);
+    const res = await fetch(`${baseUrl()}/api/users/nonce/${address}`, {
+      headers: {
+        'ngrok-skip-browser-warning': 'true',
+      },
+    });
     return handle<NonceResponse>(res);
   },
   sendPayment: async (data: TransferRequest) => {
-    const res = await fetch(`${baseUrl()}/payments/transfer`, {
+    const res = await fetch(`${baseUrl()}/api/payments/transfer`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
+      },
       body: JSON.stringify(data),
     });
     return handle<TransferResponse>(res);
   },
   getStatus: async (txId: string) => {
-    const res = await fetch(`${baseUrl()}/payments/status/${txId}`);
+    const res = await fetch(`${baseUrl()}/api/payments/status/${txId}`, {
+      headers: {
+        'ngrok-skip-browser-warning': 'true',
+      },
+    });
     return handle<StatusResponse>(res);
   },
   listTransactions: async (address: `0x${string}`, limit = 20) => {
     const params = new URLSearchParams({ address, limit: String(limit) });
-    const res = await fetch(`${baseUrl()}/payments/transactions?${params.toString()}`);
+    const res = await fetch(`${baseUrl()}/api/payments/transactions?${params.toString()}`, {
+      headers: {
+        'ngrok-skip-browser-warning': 'true',
+      },
+    });
     return handle<BackendTransaction[]>(res);
   },
   getBalance: async (address: `0x${string}`) => {
-    const res = await fetch(`${baseUrl()}/payments/balance/${address}`);
+    const res = await fetch(`${baseUrl()}/api/payments/balance/${address}`, {
+      headers: {
+        'ngrok-skip-browser-warning': 'true',
+      },
+    });
     return handle<{ address: string; balance: string; paymasterAllowance?: string; paymasterAddress?: string }>(res);
   },
   health: async () => {
-    const res = await fetch(`${baseUrl()}/health`);
+    const res = await fetch(`${baseUrl()}/health`, {
+      headers: {
+        'ngrok-skip-browser-warning': 'true',
+      },
+    });
     return handle<any>(res);
   },
 };

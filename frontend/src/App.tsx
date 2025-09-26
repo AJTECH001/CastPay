@@ -1,8 +1,7 @@
-// CastPay Dashboard UI (Farcaster Mini App)
-// Dark background with yellow accents; reusable components; NFT logic removed.
+// CastPay Dashboard UI - Web3 Payment App
+// Dark background with yellow accents; reusable components; clean web app design.
 
 import { useEffect, useState } from "react";
-import { sdk } from "@farcaster/miniapp-sdk";
 import { useAccount, useConnect, useDisconnect } from "wagmi";
 
 import Layout from "./components/Layout";
@@ -25,10 +24,20 @@ export default function App() {
   
   // Debug logging for connectors
   useEffect(() => {
-    console.log('[CastPay] Available connectors:', connectors?.map(c => ({ name: c.name, id: c.id })));
+    console.log('[CastPay] Available connectors:', connectors?.length || 0, 'connectors');
     console.log('[CastPay] Connection status:', status);
+    console.log('[CastPay] Environment:', {
+      isDev: import.meta.env.DEV,
+      mode: import.meta.env.MODE,
+      useLocalhost: import.meta.env.VITE_USE_LOCALHOST
+    });
     if (error) {
       console.error('[CastPay] Connection error:', error);
+      console.error('[CastPay] Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
     }
   }, [connectors, status, error]);
   
@@ -61,14 +70,22 @@ export default function App() {
 
   
 
+  // App initialization
   useEffect(() => {
-    // Initialize Farcaster SDK with error handling
-    try {
-      sdk.actions.ready();
-    } catch (error) {
-      console.warn('[Farcaster SDK] Failed to initialize:', error);
-      // App can still function without full SDK features
-    }
+    console.log('[CastPay] App initialized');
+    
+    // Test backend connectivity
+    const testBackend = async () => {
+      try {
+        console.log('[CastPay] Testing backend connectivity...');
+        const response = await api.health();
+        console.log('[CastPay] Backend health check successful:', response);
+      } catch (error) {
+        console.error('[CastPay] Backend health check failed:', error);
+      }
+    };
+    
+    testBackend();
   }, []);
 
   
@@ -133,7 +150,7 @@ export default function App() {
     } catch (e: any) {
       const msg = e?.message || "Failed to resolve username. Please try again.";
       const friendly = msg.includes('not found') || msg.includes('no verified')
-        ? `We couldn't find a linked Ethereum address for ${d.username}. Ask them to link a wallet in Farcaster (Profile → Verified addresses) and try again.`
+        ? `We couldn't find a linked Ethereum address for ${d.username}. Please ensure they have a verified wallet address and try again.`
         : msg;
       setSendError(friendly);
     } finally {
@@ -196,13 +213,19 @@ export default function App() {
 
   const handleShare = () => {
     if (!details) return;
-    try {
-      sdk.actions.composeCast({
-        text: `I just sent ${details.amount} ${details.token} to ${details.username} with CastPay – gasless on Arbitrum!`,
-      });
-    } catch (error) {
-      console.warn('[Farcaster SDK] Failed to compose cast:', error);
-      // Fallback: could show a manual sharing option or copy text to clipboard
+    // Simple sharing - copy to clipboard or use Web Share API
+    const shareText = `I just sent ${details.amount} ${details.token} to ${details.username} with CastPay – gasless on Arbitrum!`;
+    
+    if (navigator.share) {
+      navigator.share({
+        title: 'CastPay Payment',
+        text: shareText,
+        url: window.location.origin,
+      }).catch(console.error);
+    } else if (navigator.clipboard) {
+      navigator.clipboard.writeText(shareText).then(() => {
+        alert('Payment details copied to clipboard!');
+      }).catch(console.error);
     }
   };
 
@@ -213,20 +236,53 @@ export default function App() {
       {!isConnected ? (
         <div className="mt-6 rounded-2xl border border-slate-800 bg-slate-900/60 p-5 text-center">
           <p className="text-slate-300 text-sm">Connect your wallet to start sending gasless payments.</p>
-          <Button
-            className="mt-4"
-            variant="primary"
-            onClick={() => {
-              const connector = connectors?.[0];
-              if (connector) {
-                connect({ connector });
-              }
-            }}
-            disabled={status === "pending" || !connectors?.length}
-          >
-            {status === "pending" ? "Connecting..." : "Connect Wallet"}
-          </Button>
-          {error && <div className="text-red-400 font-semibold text-xs mt-2">{error?.message || 'Connection failed'}</div>}
+          
+          {!connectors?.length ? (
+            <div className="mt-4">
+              <div className="text-yellow-400 font-semibold text-xs mb-2">No wallet connectors available</div>
+              <div className="text-slate-400 text-xs">
+                Unable to load wallet connectors. Please refresh the page or try a different browser.
+              </div>
+            </div>
+          ) : (
+            <>
+              <Button
+                className="mt-4"
+                variant="primary"
+                onClick={() => {
+                  try {
+                    const connector = connectors?.[0];
+                    if (connector) {
+                      console.log('[CastPay] Attempting to connect with first available connector');
+                      connect({ connector });
+                    } else {
+                      console.error('[CastPay] No connector available');
+                    }
+                  } catch (err) {
+                    console.error('[CastPay] Connect button error:', err);
+                  }
+                }}
+                disabled={status === "pending"}
+              >
+                {status === "pending" ? "Connecting..." : "Connect Wallet"}
+              </Button>
+              
+              {connectors?.length > 0 && (
+                <div className="text-slate-400 text-xs mt-2">
+                  {connectors.length} wallet connector{connectors.length !== 1 ? 's' : ''} available
+                  <div className="mt-1 text-slate-500 text-xs">
+                    💡 Install MetaMask or Coinbase Wallet for the best experience
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+          
+          {error && (
+            <div className="text-red-400 font-semibold text-xs mt-2">
+              {error?.message || error?.name || 'Connection failed'}
+            </div>
+          )}
         </div>
       ) : (
         <>
@@ -240,13 +296,20 @@ export default function App() {
 
           <div className="mt-6 flex items-center justify-center gap-3">
             <Button variant="ghost" onClick={() => {
-              try {
-                sdk.actions.composeCast({ text: "Try CastPay for gasless payments on Arbitrum ✨" });
-              } catch (error) {
-                console.warn('[Farcaster SDK] Failed to compose cast:', error);
+              const shareText = "Try CastPay for gasless payments on Arbitrum ✨";
+              if (navigator.share) {
+                navigator.share({
+                  title: 'CastPay',
+                  text: shareText,
+                  url: window.location.origin,
+                }).catch(console.error);
+              } else if (navigator.clipboard) {
+                navigator.clipboard.writeText(`${shareText} ${window.location.origin}`).then(() => {
+                  alert('Share link copied to clipboard!');
+                }).catch(console.error);
               }
             }}>
-              Share CastPay on Farcaster
+              Share CastPay
             </Button>
             <Button variant="secondary" onClick={() => disconnect()}>
               Disconnect
@@ -259,7 +322,7 @@ export default function App() {
       {/* Modals */}
       <SendPaymentModal open={sendOpen} onClose={() => setSendOpen(false)} onNext={handleSendNext} loading={pending} errorMessage={sendError} />
       <ConfirmPaymentModal open={confirmOpen} onClose={() => setConfirmOpen(false)} details={details} onConfirm={handleConfirm} loading={pending} toAddress={toAddress || undefined} />
-      <SuccessModal open={successOpen} onClose={() => setSuccessOpen(false)} onShare={handleShare} message="Your payment was sent. You can share it as a cast." />
+      <SuccessModal open={successOpen} onClose={() => setSuccessOpen(false)} onShare={handleShare} message="Your payment was sent successfully!" />
       <ReceiveModal open={receiveOpen} onClose={() => setReceiveOpen(false)} address={address} />
     </Layout>
   );
