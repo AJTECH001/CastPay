@@ -10,7 +10,7 @@ CastPay enables gasless USDC transfers via Farcaster usernames. This backend han
 
 ```javascript
 const CASTPAY_CONFIG = {
-  API_BASE_URL: "https://00692bb93831.ngrok-free.app",
+  API_BASE_URL: "https://castpay-backend.onrender.com",
   USDC_ADDRESS: "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d", // Arbitrum Sepolia
   CHAIN_ID: 421614, // Arbitrum Sepolia
 };
@@ -58,7 +58,7 @@ class CastPayAPI {
   }
 }
 
-const castpay = new CastPayAPI("https://00692bb93831.ngrok-free.app");
+const castpay = new CastPayAPI("https://castpay-backend.onrender.com");
 ```
 
 ## API Reference
@@ -82,6 +82,20 @@ Check backend and paymaster status.
     "sponsorshipEnabled": true
   },
   "mode": "stylus-erc4337"
+}
+```
+
+### Relayer Endpoint.
+
+**GET /api/meta/relayer**
+
+Returns the relayer's address.
+
+**Response:**
+
+```json
+{
+  "relayer": "0xD4d2F2c89b5317d63291d1CfC46C1f8ADd1cea5C"
 }
 ```
 
@@ -266,39 +280,38 @@ checkStatus(result.txId);
 ## React Component Example
 
 ```jsx
-import React, { useState } from 'react';
+import React, { useState } from "react";
 
 const PaymentComponent = ({ userAddress, userSigner }) => {
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState('');
+  const [status, setStatus] = useState("");
 
   const sendPayment = async (toUsername, amount) => {
     setLoading(true);
-    
+
     try {
-      setStatus('Resolving username...');
+      setStatus("Resolving username...");
       const resolution = await castpay.resolveUsername(toUsername);
 
-      setStatus('Getting nonce...');
+      setStatus("Getting nonce...");
       const nonceInfo = await castpay.getNonce(userAddress);
       const nonce = parseInt(nonceInfo.nonce);
 
-      setStatus('Please sign transaction...');
+      setStatus("Please sign transaction...");
       const message = `CastPay:${userAddress}:${resolution.address}:${amount}:${nonce}`;
       const signature = await userSigner.signMessage(message);
 
-      setStatus('Submitting payment...');
+      setStatus("Submitting payment...");
       const result = await castpay.sendPayment({
         from: userAddress,
         to: resolution.address,
         amount: amount,
         nonce: nonce,
-        signature: signature
+        signature: signature,
       });
 
-      setStatus('Payment submitted!');
+      setStatus("Payment submitted!");
       await trackPaymentStatus(result.txId);
-
     } catch (error) {
       setStatus(`Error: ${error.message}`);
     } finally {
@@ -308,12 +321,12 @@ const PaymentComponent = ({ userAddress, userSigner }) => {
 
   const trackPaymentStatus = async (txId) => {
     const status = await castpay.getTransactionStatus(txId);
-    switch(status.status) {
-      case 'success':
-        setStatus('✅ Payment completed successfully!');
+    switch (status.status) {
+      case "success":
+        setStatus("✅ Payment completed successfully!");
         break;
-      case 'failed':
-        setStatus('❌ Payment failed');
+      case "failed":
+        setStatus("❌ Payment failed");
         break;
       default:
         setTimeout(() => trackPaymentStatus(txId), 2000);
@@ -322,11 +335,11 @@ const PaymentComponent = ({ userAddress, userSigner }) => {
 
   return (
     <div>
-      <button 
-        onClick={() => sendPayment('vitalik.eth', '5.00')} 
+      <button
+        onClick={() => sendPayment("vitalik.eth", "5.00")}
         disabled={loading}
       >
-        {loading ? 'Processing...' : 'Send 5 USDC to @vitalik.eth'}
+        {loading ? "Processing..." : "Send 5 USDC to @vitalik.eth"}
       </button>
       {status && <p>{status}</p>}
     </div>
@@ -378,14 +391,16 @@ try {
 Check paymaster health before transactions:
 
 ```javascript
-const health = await fetch(`${baseURL}/api/paymaster/status`).then(r => r.json());
+const health = await fetch(`${baseURL}/api/paymaster/status`).then((r) =>
+  r.json()
+);
 
 if (!health.sponsorshipEnabled) {
-  console.warn('Gas sponsorship disabled');
+  console.warn("Gas sponsorship disabled");
 }
 
 if (health.isPaused) {
-  throw new Error('Paymaster contract paused');
+  throw new Error("Paymaster contract paused");
 }
 ```
 
@@ -398,7 +413,7 @@ if (health.isPaused) {
 node tests/test-endpoints.js
 
 # Custom URL
-node tests/test-endpoints.js --url  https://00692bb93831.ngrok-free.app
+node tests/test-endpoints.js --url https://castpay-backend.onrender.com
 
 # Specific username
 node tests/test-endpoints.js --user dwr.eth

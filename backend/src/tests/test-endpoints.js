@@ -1,14 +1,25 @@
 require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const axios = require('axios');
 
-const BASE_URL = process.env.BASE_URL || 'http://localhost:3001';
+const BASE_URL = (process.env.BASE_URL || 'http://localhost:3001');
 
 class CastPayTester {
   constructor() {
     this.testResults = [];
     this.testUser = 'vitalik.eth';
     this.testAddress = '0xd8da6bf26964af9d7eed9e03e53415d37aa96045';
-    this.testRecipient = '0x742E6E70A3a24d5A0423340d34b0b0c65D1397a3'; // Test recipient
+    this.testRecipient = '0x742E6E70A3a24d5A0423340d34b0b0c65D1397a3';
+
+    console.log(`🔗 Using BASE_URL: ${BASE_URL}`);
+  }
+
+  // Helper method to construct URLs properly
+  buildUrl(endpoint) {
+    // Ensure endpoint starts with /
+    if (!endpoint.startsWith('/')) {
+      endpoint = `/${endpoint}`;
+    }
+    return `${BASE_URL}${endpoint}`;
   }
 
   async runAllTests() {
@@ -37,7 +48,7 @@ class CastPayTester {
       this.printSummary();
 
       // Print curl commands for manual testing
-      this.printCurlCommands();
+      // this.printCurlCommands();
 
     } catch (error) {
       console.error('❌ Test suite failed:', error.message);
@@ -48,7 +59,10 @@ class CastPayTester {
     console.log('1. 🔍 Testing Health Endpoint');
 
     try {
-      const response = await axios.get(`${BASE_URL}/health`);
+      const url = this.buildUrl('/health');
+      console.log(`   Requesting: ${url}`);
+
+      const response = await axios.get(url);
       this.testResults.push({ test: 'Health Check', status: 'PASS', data: response.data });
 
       console.log('✅ Health endpoint:', {
@@ -60,6 +74,10 @@ class CastPayTester {
     } catch (error) {
       this.testResults.push({ test: 'Health Check', status: 'FAIL', error: error.message });
       console.log('❌ Health endpoint failed:', error.message);
+      if (error.response) {
+        console.log('   Response status:', error.response.status);
+        console.log('   Response data:', error.response.data);
+      }
     }
     console.log('');
   }
@@ -69,13 +87,16 @@ class CastPayTester {
 
     const testUsernames = [
       'vitalik.eth',
-      'mg',
-      'dwr.eth'
+      'lyndabel',
+      'ninacodes'
     ];
 
     for (const username of testUsernames) {
       try {
-        const response = await axios.get(`${BASE_URL}/api/users/resolve/${username}`);
+        const url = this.buildUrl(`/api/users/resolve/${username}`);
+        console.log(`   Requesting: ${url}`);
+
+        const response = await axios.get(url);
         this.testResults.push({
           test: `Resolve ${username}`,
           status: 'PASS',
@@ -105,7 +126,10 @@ class CastPayTester {
 
     try {
       // Test user balance
-      const balanceResponse = await axios.get(`${BASE_URL}/api/payments/balance/${this.testAddress}`);
+      const balanceUrl = this.buildUrl(`/api/payments/balance/${this.testAddress}`);
+      console.log(`   Requesting: ${balanceUrl}`);
+
+      const balanceResponse = await axios.get(balanceUrl);
       this.testResults.push({ test: 'User Balance', status: 'PASS', data: balanceResponse.data });
 
       console.log('✅ User balance:', {
@@ -115,7 +139,10 @@ class CastPayTester {
       });
 
       // Test nonce endpoint
-      const nonceResponse = await axios.get(`${BASE_URL}/api/users/nonce/${this.testAddress}`);
+      const nonceUrl = this.buildUrl(`/api/users/nonce/${this.testAddress}`);
+      console.log(`   Requesting: ${nonceUrl}`);
+
+      const nonceResponse = await axios.get(nonceUrl);
       this.testResults.push({ test: 'User Nonce', status: 'PASS', data: nonceResponse.data });
 
       console.log('✅ User nonce:', {
@@ -126,6 +153,9 @@ class CastPayTester {
     } catch (error) {
       this.testResults.push({ test: 'Balance Endpoints', status: 'FAIL', error: error.message });
       console.log('❌ Balance endpoints failed:', error.message);
+      if (error.response) {
+        console.log('   Response status:', error.response.status);
+      }
     }
     console.log('');
   }
@@ -135,7 +165,10 @@ class CastPayTester {
 
     try {
       // Test paymaster status
-      const statusResponse = await axios.get(`${BASE_URL}/api/paymaster/status`);
+      const statusUrl = this.buildUrl('/api/paymaster/status');
+      console.log(`   Requesting: ${statusUrl}`);
+
+      const statusResponse = await axios.get(statusUrl);
       this.testResults.push({ test: 'Paymaster Status', status: 'PASS', data: statusResponse.data });
 
       console.log('✅ Paymaster status:', {
@@ -143,11 +176,15 @@ class CastPayTester {
         totalDeposited: statusResponse.data.totalDeposited + ' USDC',
         isPaused: statusResponse.data.isPaused,
         sponsorshipEnabled: statusResponse.data.sponsorshipEnabled,
-        userCount: statusResponse.data.userCount
+        userCount: statusResponse.data.userCount,
+        status: statusResponse.data.status
       });
 
       // Test paymaster balance
-      const balanceResponse = await axios.get(`${BASE_URL}/api/paymaster/balance`);
+      const balanceUrl = this.buildUrl('/api/paymaster/balance');
+      console.log(`   Requesting: ${balanceUrl}`);
+
+      const balanceResponse = await axios.get(balanceUrl);
       this.testResults.push({ test: 'Paymaster Balance', status: 'PASS', data: balanceResponse.data });
 
       console.log('✅ Paymaster balance:', {
@@ -158,6 +195,9 @@ class CastPayTester {
     } catch (error) {
       this.testResults.push({ test: 'Paymaster Endpoints', status: 'FAIL', error: error.message });
       console.log('❌ Paymaster endpoints failed:', error.response?.data?.error || error.message);
+      if (error.response) {
+        console.log('   Response status:', error.response.status);
+      }
     }
     console.log('');
   }
@@ -176,7 +216,10 @@ class CastPayTester {
       };
 
       console.log('📤 Sending transfer request...');
-      const response = await axios.post(`${BASE_URL}/api/payments/transfer`, transferData);
+      const url = this.buildUrl('/api/payments/transfer');
+      console.log(`   Requesting: ${url}`);
+
+      const response = await axios.post(url, transferData);
 
       this.testResults.push({ test: 'Transfer API', status: 'PASS', data: response.data });
 
@@ -191,7 +234,8 @@ class CastPayTester {
         console.log('⏳ Checking transaction status...');
         await new Promise(resolve => setTimeout(resolve, 1000)); // Wait a bit
 
-        const statusResponse = await axios.get(`${BASE_URL}/api/payments/status/${response.data.txId}`);
+        const statusUrl = this.buildUrl(`/api/payments/status/${response.data.txId}`);
+        const statusResponse = await axios.get(statusUrl);
         this.testResults.push({ test: 'Transaction Status', status: 'PASS', data: statusResponse.data });
 
         console.log('✅ Transaction status:', {
@@ -227,23 +271,23 @@ class CastPayTester {
     const errorTests = [
       {
         name: 'Invalid username resolution',
-        url: `${BASE_URL}/api/users/resolve/nonexistentuser123456`,
+        url: this.buildUrl('/api/users/resolve/nonexistentuser123456'),
         expectedError: 'User not found'
       },
       {
         name: 'Invalid address balance check',
-        url: `${BASE_URL}/api/payments/balance/invalid-address`,
+        url: this.buildUrl('/api/payments/balance/invalid-address'),
         expectedError: 'Invalid Ethereum address'
       },
       {
         name: 'Non-existent API route',
-        url: `${BASE_URL}/api/nonexistent`,
+        url: this.buildUrl('/api/nonexistent'),
         expectedError: 'Route not found'
       },
       {
         name: 'Invalid transfer data',
         method: 'POST',
-        url: `${BASE_URL}/api/payments/transfer`,
+        url: this.buildUrl('/api/payments/transfer'),
         data: { invalid: 'data' },
         expectedError: 'Invalid addresses'
       }
@@ -251,6 +295,8 @@ class CastPayTester {
 
     for (const test of errorTests) {
       try {
+        console.log(`   Testing: ${test.url}`);
+
         if (test.method === 'POST') {
           await axios.post(test.url, test.data);
         } else {
@@ -278,19 +324,21 @@ class CastPayTester {
     console.log('='.repeat(50));
 
     console.log('\n1. Health Check:');
-    console.log(`curl -X GET "${BASE_URL}/health"`);
+    console.log(`curl -X GET "${this.buildUrl('/health')}"`);
 
     console.log('\n2. Username Resolution:');
-    console.log(`curl -X GET "${BASE_URL}/api/users/resolve/vitalik.eth"`);
+    console.log(`curl -X GET "${this.buildUrl('/api/users/resolve/vitalik.eth')}"`);
 
     console.log('\n3. Balance Check:');
-    console.log(`curl -X GET "${BASE_URL}/api/payments/balance/${this.testAddress}"`);
+    console.log(`curl -X GET "${this.buildUrl(`/api/payments/balance/${this.testAddress}`)}"`);
 
     console.log('\n4. Paymaster Status:');
-    console.log(`curl -X GET "${BASE_URL}/api/paymaster/status"`);
+    console.log(`curl -X GET "${this.buildUrl('/api/paymaster/status')}"`);
 
     console.log('\n5. Transfer Payment (with mock data):');
-    console.log(`curl -X POST "${BASE_URL}/api/payments/transfer" \\\n  -H "Content-Type: application/json" \\\n  -d '{
+    console.log(`curl -X POST "${this.buildUrl('/api/payments/transfer')}" \\
+  -H "Content-Type: application/json" \\
+  -d '{
   "from": "${this.testAddress}",
   "to": "${this.testRecipient}", 
   "amount": "0.01",
@@ -299,7 +347,7 @@ class CastPayTester {
 }'`);
 
     console.log('\n6. Transaction Status (replace TX_ID):');
-    console.log(`curl -X GET "${BASE_URL}/api/payments/status/TX_ID_HERE"`);
+    console.log(`curl -X GET "${this.buildUrl('/api/payments/status/TX_ID_HERE')}"`);
 
     console.log('\n💡 Tip: Copy and paste these commands into your terminal to test manually.');
     console.log('');
@@ -353,7 +401,7 @@ if (require.main === module) {
 Usage: node tests/test-endpoints.js [options]
 
 Options:
-  --url <url>     Set custom base URL (default: http://localhost:3001)
+  --url <url>     Set custom base URL (default: https://00692bb93831.ngrok-free.app)
   --user <user>   Set test username (default: vitalik.eth)
   --address <addr> Set test address
   --help, -h      Show this help message
