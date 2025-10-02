@@ -5,7 +5,7 @@ const cacheService = require('./cacheService');
 class PaymentService {
   constructor() {
     this.pendingTransactions = new Map();
-    
+
     setInterval(() => this.cleanupTransactions(), 60 * 60 * 1000);
   }
 
@@ -46,29 +46,51 @@ class PaymentService {
     };
   }
 
+  // async processTransaction(txId, from, to, amountWei, nonce, signature) {
+  //   try {
+  //     this.updateTransactionStatus(txId, 'processing');
+
+  //     await blockchainService.validateTransfer(from, to, amountWei);
+
+  //     const result = await blockchainService.executePaymasterTransfer(from, to, amountWei);
+
+  //     this.updateTransactionStatus(txId, 'success', {
+  //       transactionHash: result.transactionHash,
+  //       blockNumber: result.receipt.blockNumber,
+  //       gasUsed: result.receipt.gasUsed.toString(),
+  //       paymasterExecuted: true
+  //     });
+
+  //     console.log(`✅ Transaction ${txId} completed: ${result.transactionHash}`);
+
+  //   } catch (error) {
+  //     console.error(`❌ Transaction ${txId} failed:`, error.message);
+  //     this.updateTransactionStatus(txId, 'failed', { 
+  //       error: error.message,
+  //       timestamp: Date.now()
+  //     });
+  //   }
+  // }
+
+  // In your processTransaction method, add logging:
   async processTransaction(txId, from, to, amountWei, nonce, signature) {
     try {
       this.updateTransactionStatus(txId, 'processing');
+      console.log('🔍 Processing transaction:', txId);
 
       await blockchainService.validateTransfer(from, to, amountWei);
 
       const result = await blockchainService.executePaymasterTransfer(from, to, amountWei);
+      console.log('✅ Transfer executed successfully');
 
       this.updateTransactionStatus(txId, 'success', {
         transactionHash: result.transactionHash,
-        blockNumber: result.receipt.blockNumber,
-        gasUsed: result.receipt.gasUsed.toString(),
-        paymasterExecuted: true
+        gasUsed: result.receipt.gasUsed.toString()
       });
-
-      console.log(`✅ Transaction ${txId} completed: ${result.transactionHash}`);
 
     } catch (error) {
-      console.error(`❌ Transaction ${txId} failed:`, error.message);
-      this.updateTransactionStatus(txId, 'failed', { 
-        error: error.message,
-        timestamp: Date.now()
-      });
+      console.error('❌ Transaction failed:', error.message);
+      this.updateTransactionStatus(txId, 'failed', { error: error.message });
     }
   }
 
@@ -76,7 +98,7 @@ class PaymentService {
     if (!this.pendingTransactions.has(txId)) {
       throw new Error('Transaction not found');
     }
-    
+
     const tx = this.pendingTransactions.get(txId);
     return {
       txId,
@@ -131,7 +153,7 @@ class PaymentService {
     try {
       // Get user balance from blockchain service
       const result = await blockchainService.getUserBalance(address);
-      
+
       return {
         address: result.address,
         balance: result.balance,
@@ -148,7 +170,7 @@ class PaymentService {
   async getTransactions(query = {}) {
     try {
       const { limit = 10, offset = 0, status, address } = query;
-      
+
       let transactions = Array.from(this.pendingTransactions.entries())
         .map(([txId, tx]) => ({ txId, ...tx }))
         .sort((a, b) => b.timestamp - a.timestamp);
@@ -158,8 +180,8 @@ class PaymentService {
       }
 
       if (address) {
-        transactions = transactions.filter(tx => 
-          tx.from.toLowerCase() === address.toLowerCase() || 
+        transactions = transactions.filter(tx =>
+          tx.from.toLowerCase() === address.toLowerCase() ||
           tx.to.toLowerCase() === address.toLowerCase()
         );
       }
